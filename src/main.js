@@ -58,12 +58,12 @@ searchQuery.addEventListener('input', evt => {
     searchResult = []
     searchContainer.innerHTML = ""
     if(searchQuery.value) {
-        axios.get(`https://api.allorigins.win/raw?url=https://api.deezer.com/search?q=${encodeURIComponent( searchQuery.value )}`)
+        axios.get(`https://api.allorigins.win/raw?url=https://api.deezer.com/search?q=track:"${encodeURIComponent( searchQuery.value )}"`)
             .then(function (response) {
                 
                 if(response.data.data.length > 0)
                 {
-                    let searchResult = response.data.data.filter(entry => entry.title.toLowerCase().includes(searchQuery.value.toLowerCase()))
+                    let searchResult = response.data.data
                     searchResult.forEach(async (entry) => {
                         const newDiv = document.createElement("ul")
                         newDiv.className = "search-list-ul"
