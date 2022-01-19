@@ -5,11 +5,13 @@ import DmusikMarketplaceAbi from "../contract/dmusik.abi.json"
 import erc20Abi from "../contract/erc20.abi.json"
 import { ERC20_DECIMALS, DmusikContractAddress, cUSDContractAddress } from './utils/constants';
 import * as axios from 'axios';
+import "./style.css";
 
 let kit
 let contract
 let searchResult = [];
-let searchQuery = document.getElementById("searchQuery");
+let searchQuery = document.getElementById("searchQuery")
+let searchContainer = document.getElementById("searchContainer")
 
 // connect to celo
 const connectCeloWallet = async function () {
@@ -53,29 +55,28 @@ const getBalance = async function () {
 
 // search on deezer
 searchQuery.addEventListener('input', evt => {
-    axios.get(`https://api.allorigins.win/raw?url=https://api.deezer.com/search?q=${searchQuery.value}`)
-        .then(function (response) {
-            let searchContainer = document.getElementById("searchContainer");
-
-            if (evt.inputType == "deleteContentBackward") {
-                searchResult = [];
-                searchResult.length = 0;
-                searchContainer.innerHTML = ""
-            } else {
-                let filteredResult = response.data.data.find(_search => _search.title.toLowerCase().includes(searchQuery.value.toLowerCase()));
-                searchResult.push(filteredResult)
-                searchResult.reverse().filter(async _search => {
-                    const newDiv = document.createElement("ul")
-                    newDiv.className = "search-list-ul"
-                    newDiv.innerHTML = await searchResultTemplate(_search)
-                    searchContainer.appendChild(newDiv)
-                });
-            };
-        })
-        .catch(function (error) {
-            notification(error);
-        });
-});
+    searchResult = []
+    searchContainer.innerHTML = ""
+    if(searchQuery.value) {
+        axios.get(`https://api.allorigins.win/raw?url=https://api.deezer.com/search?q=${encodeURIComponent( searchQuery.value )}`)
+            .then(function (response) {
+                
+                if(response.data.data.length > 0)
+                {
+                    let searchResult = response.data.data.filter(entry => entry.title.toLowerCase().includes(searchQuery.value.toLowerCase()))
+                    searchResult.forEach(async (entry) => {
+                        const newDiv = document.createElement("ul")
+                        newDiv.className = "search-list-ul"
+                        newDiv.innerHTML = await searchResultTemplate(entry)
+                        searchContainer.appendChild(newDiv)
+                    })
+                }
+            })
+            .catch(function (error) {
+                notification(error);
+            })
+    }
+})
 
 // search template
 async function searchResultTemplate(_search) {
@@ -124,7 +125,7 @@ window.likeSong = async (song_id) => {
             notification(`⌛ Awaiting payment for "${response.data.album.title} by ${response.data.artist.name}"...`)
             try {
                 await contract.methods
-                    .likeSong(song_id, 1)
+                    .likeSong(song_id)
                     .send({ from: kit.defaultAccount })
                 notification(`🎉 You successfully Liked "${response.data.album.title} by ${response.data.artist.name}" .`)
                 getBalance()

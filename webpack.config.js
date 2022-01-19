@@ -9,6 +9,17 @@ module.exports = {
   entry: {
     main: path.resolve(process.cwd(), "src", "main.js")
   },
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        use: [
+          'style-loader',
+          'css-loader'
+        ]
+      }
+    ]
+  },
   output: {
     path: path.resolve(process.cwd(), "docs"),
     publicPath: ""
