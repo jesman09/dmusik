@@ -5,14 +5,16 @@ import DmusikMarketplaceAbi from "../contract/dmusik.abi.json"
 import erc20Abi from "../contract/erc20.abi.json"
 import { ERC20_DECIMALS, DmusikContractAddress, cUSDContractAddress } from './utils/constants';
 import * as axios from 'axios';
+import "./style.css";
 
 let kit
 let contract
 let searchResult = [];
-let searchQuery = document.getElementById("searchQuery");
+let searchQuery = document.getElementById("searchQuery")
+let searchContainer = document.getElementById("searchContainer")
 
 // connect to celo
-const connectCeloWallet = async function () {
+const connectCeloWallet = async function() {
     if (window.celo) {
         notification("⚠️ Please approve this DApp to use it.")
         try {
@@ -45,7 +47,7 @@ async function approve(_price) {
 }
 
 // get user balance
-const getBalance = async function () {
+const getBalance = async function() {
     const totalBalance = await kit.getTotalBalance(kit.defaultAccount)
     const cUSDBalance = totalBalance.cUSD.shiftedBy(-ERC20_DECIMALS).toFixed(2)
     document.querySelector("#balance").textContent = `${cUSDBalance} cUSD`
@@ -53,29 +55,27 @@ const getBalance = async function () {
 
 // search on deezer
 searchQuery.addEventListener('input', evt => {
-    axios.get(`https://api.allorigins.win/raw?url=https://api.deezer.com/search?q=${searchQuery.value}`)
-        .then(function (response) {
-            let searchContainer = document.getElementById("searchContainer");
+    searchResult = []
+    searchContainer.innerHTML = ""
+    if (searchQuery.value) {
+        axios.get(`https://api.allorigins.win/raw?url=https://api.deezer.com/search?q=${encodeURIComponent( searchQuery.value )}`)
+            .then(function(response) {
 
-            if (evt.inputType == "deleteContentBackward") {
-                searchResult = [];
-                searchResult.length = 0;
-                searchContainer.innerHTML = ""
-            } else {
-                let filteredResult = response.data.data.find(_search => _search.title.toLowerCase().includes(searchQuery.value.toLowerCase()));
-                searchResult.push(filteredResult)
-                searchResult.reverse().filter(async _search => {
-                    const newDiv = document.createElement("ul")
-                    newDiv.className = "search-list-ul"
-                    newDiv.innerHTML = await searchResultTemplate(_search)
-                    searchContainer.appendChild(newDiv)
-                });
-            };
-        })
-        .catch(function (error) {
-            notification(error);
-        });
-});
+                if (response.data.data.length > 0) {
+                    let searchResult = response.data.data.filter(entry => entry.title.toLowerCase().includes(searchQuery.value.toLowerCase()))
+                    searchResult.forEach(async(entry) => {
+                        const newDiv = document.createElement("ul")
+                        newDiv.className = "search-list-ul"
+                        newDiv.innerHTML = await searchResultTemplate(entry)
+                        searchContainer.appendChild(newDiv)
+                    })
+                }
+            })
+            .catch(function(error) {
+                notification(error);
+            })
+    }
+})
 
 // search template
 async function searchResultTemplate(_search) {
@@ -111,10 +111,10 @@ window.playNow = (song_id) => {
 }
 
 // like song and artist
-window.likeSong = async (song_id) => {
+window.likeSong = async(song_id) => {
     // getting data from api
     axios.get(`https://api.allorigins.win/raw?url=https://api.deezer.com/track/${song_id}`)
-        .then(async function (response) {
+        .then(async function(response) {
             notification("⌛ Waiting for payment approval...")
             try {
                 await approve(BigNumber(1).shiftedBy(ERC20_DECIMALS))
@@ -124,14 +124,14 @@ window.likeSong = async (song_id) => {
             notification(`⌛ Awaiting payment for "${response.data.album.title} by ${response.data.artist.name}"...`)
             try {
                 await contract.methods
-                    .likeSong(song_id, 1)
+                    .likeSong(song_id)
                     .send({ from: kit.defaultAccount })
                 notification(`🎉 You successfully Liked "${response.data.album.title} by ${response.data.artist.name}" .`)
                 getBalance()
             } catch (error) {
                 notification(`⚠️ ${error}.`)
             }
-        }).catch(function (error) {
+        }).catch(function(error) {
             notification(error);
         })
 }
@@ -140,7 +140,7 @@ window.likeSong = async (song_id) => {
 window.supportSong = (song_id) => {
     // getting data from api
     axios.get(`https://api.allorigins.win/raw?url=https://api.deezer.com/track/${song_id}`)
-        .then(async function (response) {
+        .then(async function(response) {
             notification("⌛ Waiting for payment approval...")
             try {
                 await approve(BigNumber(2).shiftedBy(ERC20_DECIMALS))
@@ -157,7 +157,7 @@ window.supportSong = (song_id) => {
             } catch (error) {
                 notification(`⚠️ ${error}.`)
             }
-        }).catch(function (error) {
+        }).catch(function(error) {
             notification(error);
         })
 }
@@ -174,7 +174,7 @@ function notificationOff() {
 }
 
 // on load screen
-window.addEventListener("load", async () => {
+window.addEventListener("load", async() => {
     notification("⌛ Loading...");
     await connectCeloWallet();
     await getBalance();
